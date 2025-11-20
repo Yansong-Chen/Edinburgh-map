@@ -17,12 +17,13 @@ export default function EdinburghFlowMap() {
   const [time, setTime] = useState(0);
 
   // --------------------------------------------------
-  // Load flows
+  // Load flows (FIXED for GitHub Pages)
   // --------------------------------------------------
   useEffect(() => {
-    fetch("/rural_flows_edinburgh.json")
+    fetch(import.meta.env.BASE_URL + "rural_flows_edinburgh.json")
       .then((r) => r.json())
-      .then(setFlows);
+      .then(setFlows)
+      .catch((err) => console.log("Flow load error:", err));
   }, []);
 
   // --------------------------------------------------
@@ -48,47 +49,35 @@ export default function EdinburghFlowMap() {
     ],
     weight: d.weight,
     timestamps: [0, 2000],
-    color: [d.hue % 255, 100, 255], // we'll add alpha later
+    color: [d.hue % 255, 100, 255],
   }));
 
-  // --------------------------------------------------
-  // More transparent TripsLayer
-  // --------------------------------------------------
   const tripsLayer = new TripsLayer({
     id: "trips",
     data: tripsData,
     getPath: (d) => d.path,
     getTimestamps: (d) => d.timestamps,
-
-    // ⭐ Add alpha = softer line
     getColor: (d) => [d.color[0], d.color[1], d.color[2], 130],
-
     widthMinPixels: 2,
     trailLength: 300,
     currentTime: time,
     fadeTrail: true,
-    opacity: 0.6, // ⭐ more transparent
+    opacity: 0.6,
   });
 
-  // --------------------------------------------------
   // More transparent ArcLayer
-  // --------------------------------------------------
   const arcLayer = new ArcLayer({
     id: "arc",
     data: flows,
     getSourcePosition: (d) => [d.from.lon, d.from.lat],
     getTargetPosition: (d) => [d.to.lon, d.to.lat],
-
-    getSourceColor: [120, 120, 255, 35], // transparent
-    getTargetColor: [255, 220, 120, 50], // transparent
-
+    getSourceColor: [120, 120, 255, 35],
+    getTargetColor: [255, 220, 120, 50],
     getWidth: (d) => Math.sqrt(d.weight) * 0.6,
     opacity: 0.15,
   });
 
-  // --------------------------------------------------
-  // Outer glow circle (large, faint yellow)
-  // --------------------------------------------------
+  // Outer faint glow
   const venueGlowOuter = new ScatterplotLayer({
     id: "venue-glow-outer",
     data: flows.map((d) => ({
@@ -97,17 +86,14 @@ export default function EdinburghFlowMap() {
       weight: d.weight,
     })),
     getPosition: (d) => [d.lon, d.lat],
-
-    getFillColor: [255, 210, 70, 90], // faint yellow glow
-    getRadius: (d) => 200 + Math.sqrt(d.weight) * 6, // ⭐ larger radius
+    getFillColor: [255, 210, 70, 90],
+    getRadius: (d) => 200 + Math.sqrt(d.weight) * 6,
     radiusMinPixels: 20,
     opacity: 1.0,
     pickable: false,
   });
 
-  // --------------------------------------------------
-  // Inner solid yellow point
-  // --------------------------------------------------
+  // Inner bright dot
   const venueGlowInner = new ScatterplotLayer({
     id: "venue-glow-inner",
     data: flows.map((d) => ({
@@ -116,18 +102,13 @@ export default function EdinburghFlowMap() {
       weight: d.weight,
     })),
     getPosition: (d) => [d.lon, d.lat],
-
-    getFillColor: [255, 230, 0, 255], // bright yellow
-    getRadius: 80, // ⭐ bigger solid circle
+    getFillColor: [255, 230, 0, 255],
+    getRadius: 80,
     radiusMinPixels: 12,
-
     opacity: 1.0,
     pickable: true,
   });
 
-  // --------------------------------------------------
-  // Tooltip
-  // --------------------------------------------------
   const getTooltip = ({ object }) => {
     if (!object?.weight) return null;
     return {
@@ -142,9 +123,6 @@ export default function EdinburghFlowMap() {
     };
   };
 
-  // --------------------------------------------------
-  // Render
-  // --------------------------------------------------
   return (
     <DeckGL
       controller
@@ -152,8 +130,8 @@ export default function EdinburghFlowMap() {
       layers={[
         arcLayer,
         tripsLayer,
-        venueGlowOuter, // glow ring
-        venueGlowInner, // solid yellow dot
+        venueGlowOuter,
+        venueGlowInner,
       ]}
       getTooltip={getTooltip}
     >
